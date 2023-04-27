@@ -1,0 +1,1358 @@
+autoscaling created with terraform
+
+data "aws_availability_zones" "available" {}
+# AMI - 
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
+}
+# Key -
+resource "tls_private_key" "example" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "generated_key" {
+  key_name   = "nikhil-key"
+  public_key = tls_private_key.example.public_key_openssh
+}
+# Autoscaling Launch Configuration -
+resource "aws_launch_configuration" "launch-config" {
+  name          = "launch-config"
+  image_id      = data.aws_ami.ubuntu.id
+  instance_type = "t2.micro"
+  key_name = aws_key_pair.generated_key.key_name
+}
+# Autoscaling group
+resource "aws_autoscaling_group" "group-autoscaling" {
+  name                      = "group-autoscaling"
+  vpc_zone_identifier       = ["subnet-03aa50707150c57dd"]
+  launch_configuration      = aws_launch_configuration.launch-config.name
+  max_size                  = 3
+  min_size                  = 1
+  health_check_grace_period = 100
+  health_check_type         = "EC2"
+  force_delete              = true
+  tag {
+    key = "Name"
+    value = "ec2_instance"
+    propagate_at_launch = true
+  }
+}  
+# Autoscaling configuration policy
+resource "aws_autoscaling_policy" "auto-policy" {
+  name                   = "auto-policy"
+  autoscaling_group_name = aws_autoscaling_group.group-autoscaling.name
+  scaling_adjustment     = 1
+  adjustment_type        = "ChangeInCapacity"
+  cooldown               = 300
+  policy_type            = "SimpleScaling"
+}
+--------------------------------------------------------------
+jenkin apache nginx configure
+
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
+}
+
+resource "aws_instance" "web" {
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = "t3.micro"
+  #security_group = aws_security_group.allow_tls.id
+
+  tags = {
+    Name = "HelloWorld"
+  }
+
+user_data = <<EOF
+#!/bin/bash
+#!/bin/bash
+sudo yum update -y
+sudo yum install wget
+sudo amazon-linux-extras install java-openjdk11
+sudo amazon-linux-extras install epel -y
+sudo wget -O /etc/yum.repos.d/jenkins.repo http://pkg.jenkins-ci.org/redhat/jenkins.repo
+sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io.key
+sudo yum install jenkins -y
+sudo service jenkins start
+EOF
+}
+
+ resource "aws_security_group" "allow_tls" {
+  name        = "allow_tls"
+  description = "Allow TLS inbound traffic"
+
+  ingress {
+    description      = "ssh"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+  }
+
+ingress {
+    description      = "https"
+    from_port        = 8080
+    to_port          = 8080
+    protocol         = "tcp"
+  }
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = {
+    Name = "allow_tls"
+  }
+} 
+
+
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
+}
+
+resource "aws_instance" "web" {
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = "t3.micro"
+  #security_group = aws_security_group.allow_tls.id
+
+  tags = {
+    Name = "HelloWorld"
+  }
+
+user_data = <<EOF
+#!/bin/bash
+#!/bin/bash
+sudo apt update
+sudo apt-get install nginx -y
+sudo systemctl start nginx
+sudo systemctl enable nginx
+EOF
+}
+
+ resource "aws_security_group" "allow_tls" {
+  name        = "allow_tls"
+  description = "Allow TLS inbound traffic"
+
+  ingress {
+    description      = "ssh"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+  }
+
+ingress {
+    description      = "https"
+    from_port        = 8080
+    to_port          = 8080
+    protocol         = "tcp"
+  }
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = {
+    Name = "allow_tls"
+  }
+} 
+
+
+
+ data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
+}
+
+resource "aws_instance" "web" {
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = "t3.micro"
+  #security_group = aws_security_group.allow_tls.id
+
+  tags = {
+    Name = "HelloWorld"
+  }
+
+user_data = <<EOF
+#!/bin/bash
+#!/bin/bash
+sudo apt update
+sudo apt-get install apache2 -y
+sudo systemctl start apache2
+sudo systemctl enable apche2
+EOF
+}
+
+ resource "aws_security_group" "allow_tls" {
+  name        = "allow_tls"
+  description = "Allow TLS inbound traffic"
+
+  ingress {
+    description      = "ssh"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+  }
+
+ingress {
+    description      = "https"
+    from_port        = 8080
+    to_port          = 8080
+    protocol         = "tcp"
+  }
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = {
+    Name = "allow_tls"
+  }
+}
+----------------------------
+3 enoviremnt with dev test prod
+resource "aws_iam_user" "user1" {
+  name = "devops-1"
+  path = "/system/"
+
+  tags = {
+    tag-key = "this is my 1st user"
+  }
+}
+resource "aws_iam_user" "user2" {
+  name = "devops-2"
+  path = "/system/"
+
+  tags = {
+    tag-key = "this is my 2st user"
+  }
+}
+
+resource "aws_iam_user" "user3" {
+  name = "devops-3"
+  path = "/system/"
+
+  tags = {
+    tag-key = "this is my 3rd user"
+  }
+}
+
+resource "aws_iam_user" "user4" {
+  name = "devops-4"
+  path = "/system/"
+
+  tags = {
+    tag-key = "this is my 4th user"
+  }
+}
+resource "aws_iam_group" "devops" {
+  name = "devops"
+  path = "/users/"
+}
+
+resource "aws_iam_group_membership" "team" {
+  name = "devops-group-membership"
+
+  users = [
+    aws_iam_user.user1.name,
+    aws_iam_user.user2.name,
+    aws_iam_user.user3.name,
+    aws_iam_user.user4.name,
+
+  ]
+
+  group = aws_iam_group.devops.name
+}
+resource "aws_iam_policy" "policy" {
+  name        = "test-policy"
+  description = "A test policy"
+  policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "S3ReadOnlyAccess",
+            "Effect": "Allow",
+            "Action": [
+                "s3:Get*",
+                "s3:List*"
+            ],
+            "Resource": [
+                "arn:aws:s3:::example-bucket",
+                "arn:aws:s3:::example-bucket/*"
+            ]
+        }
+    ]
+}
+EOF
+}
+
+resource "aws_iam_group_policy_attachment" "test-attach" {
+  group      = aws_iam_group.devops.name
+  policy_arn = aws_iam_policy.policy.arn
+}
+
+resource "aws_iam_user" "user5" {
+  name = "test-1"
+  path = "/system/"
+
+  tags = {
+    tag-key = "this is my 1st usertest"
+  }
+}
+resource "aws_iam_user" "user6" {
+  name = "test-2"
+  path = "/system/"
+
+  tags = {
+    tag-key = "this is my 2st usertest"
+  }
+}
+
+resource "aws_iam_user" "user7" {
+  name = "test-3"
+  path = "/system/"
+
+  tags = {
+    tag-key = "this is my 3rd usertest"
+  }
+}
+
+resource "aws_iam_user" "user8" {
+  name = "test-4"
+  path = "/system/"
+
+  tags = {
+    tag-key = "this is my 4th usertest"
+  }
+}
+resource "aws_iam_group" "test" {
+  name = "test"
+  path = "/users/"
+}
+
+resource "aws_iam_group_membership" "team-1" {
+  name = "test-group-membership"
+
+  users = [
+    aws_iam_user.user5.name,
+    aws_iam_user.user6.name,
+    aws_iam_user.user7.name,
+    aws_iam_user.user8.name,
+
+  ]
+
+  group = aws_iam_group.test.name
+}
+resource "aws_iam_policy" "policy1" {
+  name        = "test-policy1"
+  description = "A test policy1"
+  policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "EC2ReadOnlyAccess",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:Describe*"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+EOF
+}
+resource "aws_iam_group_policy_attachment" "test-attach1" {
+  group      = aws_iam_group.test.name
+  policy_arn = aws_iam_policy.policy1.arn
+}
+
+
+resource "aws_iam_user" "user9" {
+  name = "moni-1"
+  path = "/system/"
+
+  tags = {
+    tag-key = "this is my 1st usertest"
+  }
+}
+resource "aws_iam_user" "user10" {
+  name = "moni-2"
+  path = "/system/"
+
+  tags = {
+    tag-key = "this is my 2st usermoni"
+  }
+}
+
+resource "aws_iam_user" "user11" {
+  name = "moni-3"
+  path = "/system/"
+
+  tags = {
+    tag-key = "this is my 3rd usermoni"
+  }
+}
+
+resource "aws_iam_user" "user12" {
+  name = "moni-4"
+  path = "/system/"
+
+  tags = {
+    tag-key = "this is my 4th usermoni"
+  }
+}
+resource "aws_iam_group" "moni" {
+  name = "moni"
+  path = "/users/"
+}
+
+resource "aws_iam_group_membership" "team-2" {
+  name = "moni-group-membership"
+
+  users = [
+    aws_iam_user.user9.name,
+    aws_iam_user.user10.name,
+    aws_iam_user.user11.name,
+    aws_iam_user.user12.name,
+
+  ]
+
+  group = aws_iam_group.moni.name
+}
+
+resource "aws_iam_policy" "policy2" {
+  name        = "test-policy3"
+  description = "A test policy3"
+   policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "autoscaling:Describe*",
+                "cloudwatch:Describe*",
+                "cloudwatch:Get*",
+                "cloudwatch:List*",
+                "logs:Get*",
+                "logs:List*",
+                "logs:StartQuery",
+                "logs:StopQuery",
+                "logs:Describe*",
+                "logs:TestMetricFilter",
+                "logs:FilterLogEvents",
+                "oam:ListSinks",
+                "sns:Get*",
+                "sns:List*"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "oam:ListAttachedLinks"
+            ],
+            "Resource": "arn:aws:oam:*:*:sink/*"
+        }
+    ]
+}
+EOF
+}
+resource "aws_iam_group_policy_attachment" "test-attach2" {
+  group      = aws_iam_group.moni.name
+  policy_arn = aws_iam_policy.policy2.arn
+}
+
+resource "aws_iam_user" "user13" {
+  name = "account-1"
+  path = "/system/"
+
+  tags = {
+    tag-key = "this is my 1st useraccount"
+  }
+}
+
+resource "aws_iam_user" "user14" {
+  name = "account-2"
+  path = "/system/"
+
+  tags = {
+    tag-key = "this is my 2st useraccount"
+  }
+}
+
+
+resource "aws_iam_user" "user15" {
+  name = "account-3"
+  path = "/system/"
+
+  tags = {
+    tag-key = "this is my 3rd useraccount"
+  }
+}
+
+resource "aws_iam_user" "user16" {
+  name = "account-4"
+  path = "/system/"
+
+  tags = {
+    tag-key = "this is my 4th useraccount"
+  }
+}
+resource "aws_iam_group" "account" {
+  name = "account"
+  path = "/users/"
+}
+
+resource "aws_iam_group_membership" "team-3" {
+  name = "account-group-membership"
+
+  users = [
+    aws_iam_user.user13.name,
+    aws_iam_user.user14.name,
+    aws_iam_user.user15.name,
+    aws_iam_user.user16.name,
+
+  ]
+
+  group = aws_iam_group.account.name
+}
+
+resource "aws_iam_policy" "policy3" {
+  name        = "test-policy2"
+  description = "A test policy2"
+   policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "BillingReadOnlyAccess",
+            "Effect": "Allow",
+            "Action": [
+                "aws-portal:ViewBilling",
+                "aws-portal:ViewUsage"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+EOF
+}
+resource "aws_iam_group_policy_attachment" "account-attach3" {
+  group      = aws_iam_group.account.name
+  policy_arn = aws_iam_policy.policy3.arn
+}
+------------------------------------------------------------
+vpc part
+vpc create to publice subnet private subnet 
+resource "aws_vpc" "tf_vpc" {
+  cidr_block = var.vpc_cidr
+  tags     = merge(var.tags,{Name = "${var.namespace}-VPC"})
+}
+
+# Internet Gateway
+resource "aws_internet_gateway" "terra_igw" {
+  vpc_id = aws_vpc.tf_vpc.id
+  tags   = var.tags
+}
+
+# Subnets : public
+resource "aws_subnet" "public_subnet" {
+  #   count                   = length(var.public_cidr)
+  vpc_id                  = aws_vpc.tf_vpc.id
+  cidr_block              = var.public_cidr
+  availability_zone       = var.azs
+  map_public_ip_on_launch = true
+  tags                    = merge(var.tags,{Name = "${var.namespace}-Sub_Pub"})
+}
+
+# Subnets : private
+
+resource "aws_subnet" "private_subnet" {
+  #   count                   = length(var.public_cidr)
+  vpc_id                  = aws_vpc.tf_vpc.id
+  cidr_block              = var.private_cidr
+  availability_zone       = var.azs
+  map_public_ip_on_launch = false
+  tags                    = merge(var.tags,{Name = "${var.namespace}-Sub_Pri"})
+}
+
+/* ----------------------NAT----------------------------- */
+
+resource "aws_eip" "elasticip" {
+  vpc = true
+}
+
+resource "aws_nat_gateway" "nat_gateway" {
+  allocation_id = aws_eip.elasticip.id
+  subnet_id     = aws_subnet.public_subnet.id
+
+  tags = {
+    Name = "nat-gateway"
+  }
+}
+
+
+
+
+
+
+# Route table: attach Internet Gateway 
+resource "aws_route_table" "public_rt" {
+  vpc_id = aws_vpc.tf_vpc.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.terra_igw.id
+  }
+  tags = merge(var.tags,{Name = "${var.namespace}-IGW"})
+}
+
+# Route table association with public subnets
+resource "aws_route_table_association" "a" {
+  #   count          = length(var.public_cidr)
+  subnet_id      = aws_subnet.public_subnet.id
+  route_table_id = aws_route_table.public_rt.id
+}
+-------------------------------------
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
+}
+
+resource "aws_instance" "lbcreating-server" {
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = "t2.micro"
+  count                       = 2
+  associate_public_ip_address = true
+  availability_zone           = "us-east-1a"
+  key_name                    = aws_key_pair.generated_key.key_name
+  security_groups             = [aws_security_group.this.name]
+  user_data                   = <<EOF
+#!/bin/bash
+sudo apt-get update
+sudo apt-get install -y apache2
+sudo systemctl start apache2
+sudo systemctl enable apache2
+echo "<h1>Hello world</h1>" | sudo tee /var/www/html/index.html
+EOF
+  tags = {
+    Name    = "nikhil"
+    Purpose = "Terraform testing"
+    EndDate = "20/04/2023"
+  }
+}
+
+resource "tls_private_key" "example" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "generated_key" {
+  key_name   = "nikhil-key"
+  public_key = tls_private_key.example.public_key_openssh
+}
+
+data "aws_vpc" "default" {
+    default = true
+}
+
+data "aws_subnet_ids" "subnet" {
+    vpc_id = data.aws_vpc.default.id
+}
+
+resource "aws_security_group" "this" {
+  name        = "allow_tls"
+  description = "Allow TLS inbound traffic"
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = {
+    Name = "this"
+  }
+}
+
+resource "aws_lb_target_group" "target-group" {
+  name        = "tg"
+  port        = 80
+  protocol    = "HTTP"
+  target_type = "instance"
+  vpc_id      = data.aws_vpc.default.id
+}
+
+resource "aws_lb" "application-lb" {
+  name               = "alb"
+  internal           = false
+  ip_address_type    = "ipv4"
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.this.id]
+  subnets            = data.aws_subnet_ids.subnet.ids
+}
+
+resource "aws_lb_listener" "alb-listener" {
+  load_balancer_arn = aws_lb.application-lb.arn
+  port              = 80
+  protocol          = "HTTP"
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.target-group.arn
+  }
+}
+
+resource "aws_lb_target_group_attachment" "ec2_attach" {
+  count            = length(aws_instance.lbcreating-server)
+  target_group_arn = aws_lb_target_group.target-group.arn
+  target_id        = aws_instance.lbcreating-server[count.index].id
+}
+
+output "elb-dns-name" {
+  value = aws_lb.application-lb.dns_name
+}
+
+---------------------------
+
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
+}
+
+resource "aws_instance" "lbcreating-server" {
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = "t2.micro"
+  count                       = 2
+  associate_public_ip_address = true
+  availability_zone           = "us-east-1a"
+  key_name                    = aws_key_pair.generated_key.key_name
+  security_groups             = [aws_security_group.this.name]
+  user_data                   = <<EOF
+#!/bin/bash
+sudo apt-get update
+sudo apt-get install -y apache2
+sudo systemctl start apache2
+sudo systemctl enable apache2
+echo "<h1>Hello world</h1>" | sudo tee /var/www/html/index.html
+EOF
+  tags = {
+    Name    = "nikhil"
+    Purpose = "Terraform testing"
+    EndDate = "20/04/2023"
+  }
+}
+
+resource "tls_private_key" "example" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "generated_key" {
+  key_name   = "nikhil-key"
+  public_key = tls_private_key.example.public_key_openssh
+}
+
+data "aws_vpc" "default" {
+    default = true
+}
+
+data "aws_subnet_ids" "subnet" {
+    vpc_id = data.aws_vpc.default.id
+}
+
+resource "aws_security_group" "this" {
+  name        = "allow_tls"
+  description = "Allow TLS inbound traffic"
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = {
+    Name = "this"
+  }
+}
+
+resource "aws_lb_target_group" "target-group" {
+  name        = "tg"
+  port        = 80
+  protocol    = "HTTP"
+  target_type = "instance"
+  vpc_id      = data.aws_vpc.default.id
+}
+
+resource "aws_lb" "application-lb" {
+  name               = "alb"
+  internal           = false
+  ip_address_type    = "ipv4"
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.this.id]
+  subnets            = data.aws_subnet_ids.subnet.ids
+}
+
+resource "aws_lb_listener" "alb-listener" {
+  load_balancer_arn = aws_lb.application-lb.arn
+  port              = 80
+  protocol          = "HTTP"
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.target-group.arn
+  }
+}
+
+resource "aws_lb_target_group_attachment" "ec2_attach" {
+  count            = length(aws_instance.lbcreating-server)
+  target_group_arn = aws_lb_target_group.target-group.arn
+  target_id        = aws_instance.lbcreating-server[count.index].id
+}
+
+output "elb-dns-name" {
+  value = aws_lb.application-lb.dns_name
+}
+
+---------------------------
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
+}
+
+resource "aws_instance" "lbcreating-server" {
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = "t2.micro"
+  count                       = 2
+  associate_public_ip_address = true
+  availability_zone           = "us-east-1a"
+  key_name                    = aws_key_pair.generated_key.key_name
+  security_groups             = [aws_security_group.this.name]
+  user_data                   = <<EOF
+#!/bin/bash
+sudo apt-get update
+sudo apt-get install -y apache2
+sudo systemctl start apache2
+sudo systemctl enable apache2
+echo "<h1>Hello world</h1>" | sudo tee /var/www/html/index.html
+EOF
+  tags = {
+    Name    = "nikhil"
+    Purpose = "Terraform testing"
+    EndDate = "20/04/2023"
+  }
+}
+
+resource "tls_private_key" "example" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "generated_key" {
+  key_name   = "nikhil-key"
+  public_key = tls_private_key.example.public_key_openssh
+}
+
+data "aws_vpc" "default" {
+    default = true
+}
+
+data "aws_subnet_ids" "subnet" {
+    vpc_id = data.aws_vpc.default.id
+}
+
+resource "aws_security_group" "this" {
+  name        = "allow_tls"
+  description = "Allow TLS inbound traffic"
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = {
+    Name = "this"
+  }
+}
+
+resource "aws_lb_target_group" "target-group" {
+  name        = "tg"
+  port        = 80
+  protocol    = "HTTP"
+  target_type = "instance"
+  vpc_id      = data.aws_vpc.default.id
+}
+
+resource "aws_lb" "application-lb" {
+  name               = "alb"
+  internal           = false
+  ip_address_type    = "ipv4"
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.this.id]
+  subnets            = data.aws_subnet_ids.subnet.ids
+}
+
+resource "aws_lb_listener" "alb-listener" {
+  load_balancer_arn = aws_lb.application-lb.arn
+  port              = 80
+  protocol          = "HTTP"
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.target-group.arn
+  }
+}
+
+resource "aws_lb_target_group_attachment" "ec2_attach" {
+  count            = length(aws_instance.lbcreating-server)
+  target_group_arn = aws_lb_target_group.target-group.arn
+  target_id        = aws_instance.lbcreating-server[count.index].id
+}
+
+output "elb-dns-name" {
+  value = aws_lb.application-lb.dns_name
+}
+
+---------------------------
+
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
+}
+
+resource "aws_instance" "lbcreating-server" {
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = "t2.micro"
+  count                       = 2
+  associate_public_ip_address = true
+  availability_zone           = "us-east-1a"
+  key_name                    = aws_key_pair.generated_key.key_name
+  security_groups             = [aws_security_group.this.name]
+  user_data                   = <<EOF
+#!/bin/bash
+sudo apt-get update
+sudo apt-get install -y apache2
+sudo systemctl start apache2
+sudo systemctl enable apache2
+echo "<h1>Hello world</h1>" | sudo tee /var/www/html/index.html
+EOF
+  tags = {
+    Name    = "nikhil"
+    Purpose = "Terraform testing"
+    EndDate = "20/04/2023"
+  }
+}
+
+resource "tls_private_key" "example" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "generated_key" {
+  key_name   = "nikhil-key"
+  public_key = tls_private_key.example.public_key_openssh
+}
+
+data "aws_vpc" "default" {
+    default = true
+}
+
+data "aws_subnet_ids" "subnet" {
+    vpc_id = data.aws_vpc.default.id
+}
+
+resource "aws_security_group" "this" {
+  name        = "allow_tls"
+  description = "Allow TLS inbound traffic"
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = {
+    Name = "this"
+  }
+}
+
+resource "aws_lb_target_group" "target-group" {
+  name        = "tg"
+  port        = 80
+  protocol    = "HTTP"
+  target_type = "instance"
+  vpc_id      = data.aws_vpc.default.id
+}
+
+resource "aws_lb" "application-lb" {
+  name               = "alb"
+  internal           = false
+  ip_address_type    = "ipv4"
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.this.id]
+  subnets            = data.aws_subnet_ids.subnet.ids
+}
+
+resource "aws_lb_listener" "alb-listener" {
+  load_balancer_arn = aws_lb.application-lb.arn
+  port              = 80
+  protocol          = "HTTP"
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.target-group.arn
+  }
+}
+
+resource "aws_lb_target_group_attachment" "ec2_attach" {
+  count            = length(aws_instance.lbcreating-server)
+  target_group_arn = aws_lb_target_group.target-group.arn
+  target_id        = aws_instance.lbcreating-server[count.index].id
+}
+
+output "elb-dns-name" {
+  value = aws_lb.application-lb.dns_name
+}
+
+---------------------------
+
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
+}
+
+resource "aws_instance" "lbcreating-server" {
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = "t2.micro"
+  count                       = 2
+  associate_public_ip_address = true
+  availability_zone           = "us-east-1a"
+  key_name                    = aws_key_pair.generated_key.key_name
+  security_groups             = [aws_security_group.this.name]
+  user_data                   = <<EOF
+#!/bin/bash
+sudo apt-get update
+sudo apt-get install -y apache2
+sudo systemctl start apache2
+sudo systemctl enable apache2
+echo "<h1>Hello world</h1>" | sudo tee /var/www/html/index.html
+EOF
+  tags = {
+    Name    = "nikhil"
+    Purpose = "Terraform testing"
+    EndDate = "20/04/2023"
+  }
+}
+
+resource "tls_private_key" "example" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "generated_key" {
+  key_name   = "nikhil-key"
+  public_key = tls_private_key.example.public_key_openssh
+}
+
+data "aws_vpc" "default" {
+    default = true
+}
+
+data "aws_subnet_ids" "subnet" {
+    vpc_id = data.aws_vpc.default.id
+}
+
+resource "aws_security_group" "this" {
+  name        = "allow_tls"
+  description = "Allow TLS inbound traffic"
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = {
+    Name = "this"
+  }
+}
+
+resource "aws_lb_target_group" "target-group" {
+  name        = "tg"
+  port        = 80
+  protocol    = "HTTP"
+  target_type = "instance"
+  vpc_id      = data.aws_vpc.default.id
+}
+
+resource "aws_lb" "application-lb" {
+  name               = "alb"
+  internal           = false
+  ip_address_type    = "ipv4"
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.this.id]
+  subnets            = data.aws_subnet_ids.subnet.ids
+}
+
+resource "aws_lb_listener" "alb-listener" {
+  load_balancer_arn = aws_lb.application-lb.arn
+  port              = 80
+  protocol          = "HTTP"
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.target-group.arn
+  }
+}
+
+resource "aws_lb_target_group_attachment" "ec2_attach" {
+  count            = length(aws_instance.lbcreating-server)
+  target_group_arn = aws_lb_target_group.target-group.arn
+  target_id        = aws_instance.lbcreating-server[count.index].id
+}
+
+output "elb-dns-name" {
+  value = aws_lb.application-lb.dns_name
+}
+
+---------------------------
+
+
+
