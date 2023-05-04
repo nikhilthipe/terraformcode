@@ -1,0 +1,160 @@
+instance createing with elastice ip
+resource "aws_instance" "web" {
+  ami           = "ami-0889a44b331db0194"
+  instance_type = "t3.micro"
+  
+
+  tags = {
+    Name = "starting"
+  }
+}
+
+resource "aws_eip" "lb" {
+  instance = aws_instance.web.id
+  vpc      = true
+}
+---------------------------
+terraform modules to s3 bucket created and to file transfer
+
+create two folder  frist is modules
+second is instance
+create the main .tf file
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
+}
+
+resource "aws_instance" "web-inst" {
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = var.instance_type
+  tags                        = var.instance_tags
+  availability_zone           = var.instance_az
+  security_groups             = [aws_security_group.this.name]
+}
+
+resource "aws_security_group" "this" {
+  name        = var.sg_name
+  description = var.sg_description
+  
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags =  var.sg_tags
+    
+}
+-----------------
+another file is variable file under into the this two folder var.tf
+variable "instance_type" {
+  type    = string
+}
+
+variable "instance_tags" {
+  type = map(string)
+}
+
+variable "instance_az" {
+  type    = string
+}
+
+variable "sg_name" {
+  type    = string
+}
+
+variable "sg_description" {
+  type    = string
+}
+
+variable "sg_tags" {
+  type = map(string)
+}
+----------------------
+
+create another 2 folder 
+1 is env
+2 is dev
+to create the file main.tf
+
+provider "aws" {
+profile = "nik"
+region = "us-east-1"
+
+}
+
+terraform {
+  backend "s3" {
+    bucket = "terraform-buc"
+    key    = "state/terraform.tfstate"
+    region = "us-east-1"
+     # Replace this with your DynamoDB table name!
+   # dynamodb_table = "terraform-up-and-running-locks"
+    #encrypt        = true
+  }
+}
+
+module "Instance" {
+    source = "../../modules/instance"
+    instance_type = "t3.medium"
+    instance_tags = {
+        Name = "test-instance"
+        Owner = "nikhil"
+    }
+    instance_az = "us-east-1a"
+    sg_name = "Dev-sg"
+    sg_description = "This sg is for dev"
+    sg_tags = {
+        Name = "dev_sg_grp"
+        Owner = "dev.nikhil"
+    }
+  
+}
+-------------------------
+frist apply this command after that  instalzation of the terraform plugin
+terraform init --backend-config="access_key=AKIAUE3XEUV6LX7QBCOU" --backend-config="secret_key=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"
+tf plan 
+tf apply --auto-approve
+done 
+---------------------------------------
+
+
+
