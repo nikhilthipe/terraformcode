@@ -1,0 +1,98 @@
+repo created by terraform
+generate the token 
+seeting ..>develpersetting..>personal access..>token claasic..>generate new token 
+
+provider "github" {
+  token = "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"  ....>this token paste here
+  
+}
+
+resource "github_repository" "test-repo" {
+  name        = "test-repo"
+  description = "Test repo from Terraform"
+  visibility = "public"
+}
+
+------------------------------------------------------------
+
+how to cl the variable
+in
+main .tf
+
+resource "github_repository" "test-repo" {
+  name        = "test-repo"
+  description = "Test repo from Terraform"
+  visibility = "public"
+}
+---------
+var.tf
+variable "token" {
+}
+---------
+terraform.tfvar
+token = ""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"
+---------
+provider.tf 
+provider "github"
+token = "${var.token}"
+------
+after check the terraform validate command
+after terraform apply
+
+-----------------
+ how to access the url form terraform file output command  and print the url
+ main.tf
+ resource "github_repository" "test-repo" {
+  name        = "test-repo"
+  description = "Test repo from Terraform"
+  visibility = "public"
+}
+
+
+output "testrepo-url" {
+  value = "github_repository.test-repo.html_url"
+  
+}
+-----
+provider.tf
+provider "github" {
+token = "${var.token}"
+}
+------
+variable.tf
+variable "token" {
+}
+-----
+terraform.tfvars
+token = "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"
+-------
+terraform output testrepo-url ....>output name type here after that show the url of the github
+--------------------------------------------------------------------
+consol command 
+variable file to add the resoucre
+variable "username"{
+default = "nikhil" 
+}
+variable "age" {
+default = "23"
+}
+ variable "city" {
+ deafult = "nagpur"
+ }
+ ---------
+terraform console
+> var.username
+"nikhil"
+> var.city
+"nagpur"
+> github_repository.test-repo.ssh_clone_url ...>url print from the tfstate file
+"git@github.com:nikhilthipe/test-repo.git"
+> github_repository.test-repo.full_name
+"nikhilthipe/test-repo"
+>
+---------------------------------------------------
+
+
+
+
+
